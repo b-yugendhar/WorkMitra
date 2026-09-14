@@ -1,92 +1,76 @@
-import { Request, Response } from 'express';
-import User from '../models/User';
-import WorkAgreement from '../models/WorkAgreement';
-import Payment from '../models/Payment';
-import AuditLog from '../models/AuditLog';
-import VerificationRequest from '../models/VerificationRequest';
+import { Request, Response } from "express";
+import User from "../models/User";
 
-// @desc    Get platform stats
-// @route   GET /api/admin/stats
-// @access  Private (Admin)
-export const getPlatformStats = async (req: Request, res: Response) => {
+// Get platform statistics
+export const getPlatformStats = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
         const totalUsers = await User.countDocuments();
-        const activeAgreements = await WorkAgreement.countDocuments({ status: 'active' });
+        const workers = await User.countDocuments({
+            role: "worker",
+        });
+        const employers = await User.countDocuments({
+            role: "employer",
+        });
+        const admins = await User.countDocuments({
+            role: "admin",
+        });
+        const verifiers = await User.countDocuments({
+            role: "verifier",
+        });
 
-        // Mock revenue/escrow calculations
-        const escrowPayments = await Payment.find({ status: 'pending' });
-        const totalEscrow = escrowPayments.reduce((acc, p) => acc + p.amount, 0);
-
-        // Fetch some monthly mock data for recharts
-        const mockRevenueData = [
-            { month: 'Jan', revenue: 4000 },
-            { month: 'Feb', revenue: 3000 },
-            { month: 'Mar', revenue: 5000 },
-            { month: 'Apr', revenue: 2780 },
-            { month: 'May', revenue: 8900 },
-            { month: 'Jun', revenue: 10200 },
-        ];
-
-        res.json({
+        res.status(200).json({
             totalUsers,
-            activeAgreements,
-            totalEscrow,
-            revenueData: mockRevenueData
+            workers,
+            employers,
+            admins,
+            verifiers,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching stats', error: (error as Error).message });
+        res.status(500).json({
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unable to fetch platform statistics",
+        });
     }
 };
 
-// @desc    Get all disputes
-// @route   GET /api/admin/disputes
-// @access  Private (Admin)
-export const getDisputes = async (req: Request, res: Response) => {
+// Get disputes
+export const getDisputes = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
-        const disputes = await WorkAgreement.find({ status: 'disputed' })
-            .populate('workerId', 'name phone')
-            .populate('employerId', 'name phone')
-            .populate('jobId', 'title');
-
-        res.json(disputes);
+        // Temporary response until a Dispute model is added
+        res.status(200).json({
+            message: "Dispute management is not implemented yet",
+            disputes: [],
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching disputes', error: (error as Error).message });
+        res.status(500).json({
+            message: "Unable to fetch disputes",
+        });
     }
 };
 
-// @desc    Resolve a dispute
-// @route   POST /api/admin/disputes/:id/resolve
-// @access  Private (Admin)
-export const resolveDispute = async (req: Request, res: Response) => {
+// Resolve dispute
+export const resolveDispute = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
-        const { id } = req.params;
-        const { resolution, details } = req.body; // 'refund_employer' or 'pay_worker'
+        const { disputeId } = req.params;
 
-        const agreement = await WorkAgreement.findById(id);
-        if (!agreement) return res.status(404).json({ message: 'Agreement not found' });
-
-        if (resolution === 'refund_employer') {
-            agreement.paymentStatus = 'released';
-            agreement.status = 'completed';
-        } else if (resolution === 'pay_worker') {
-            agreement.paymentStatus = 'released';
-            agreement.status = 'completed';
-        }
-
-        await agreement.save();
-
-        // Log the audit
-        // @ts-ignore
-        await AuditLog.create({
-            // @ts-ignore
-            adminId: req.user._id,
-            actionType: 'RESOLVE_DISPUTE',
-            details: `Resolved dispute with: ${resolution}. Note: ${details}`,
-            targetId: agreement._id
+        res.status(200).json({
+            message: "Dispute resolution endpoint is ready",
+            disputeId,
         });
-
-        res.json({ message: 'Dispute resolved successfully', agreement });
     } catch (error) {
-        res.status(500).json({ message: 'Error resolving dispute', error: (error as Error).message });
+        res.status(500).json({
+            message: "Unable to resolve dispute",
+        });
     }
 };

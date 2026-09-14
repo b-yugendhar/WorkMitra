@@ -1,0 +1,43 @@
+EXIT CODE: 2
+src/controllers/authController.ts(7,16): error TS2769: No overload matches this call.
+  Overload 1 of 5, '(payload: string | object | Buffer<ArrayBufferLike>, secretOrPrivateKey: null, options?: (SignOptions & { algorithm: "none"; }) | undefined): string', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'null'.
+  Overload 2 of 5, '(payload: string | object | Buffer<ArrayBufferLike>, secretOrPrivateKey: string | ArrayBuffer | SharedArrayBuffer | Uint8Array<ArrayBufferLike> | ... 17 more ... | DataView<...>, options?: SignOptions | undefined): string', gave the following error.
+    Type 'string' is not assignable to type 'number | StringValue | undefined'.
+  Overload 3 of 5, '(payload: string | object | Buffer<ArrayBufferLike>, secretOrPrivateKey: string | ArrayBuffer | SharedArrayBuffer | Uint8Array<ArrayBufferLike> | ... 17 more ... | DataView<...>, callback: SignCallback): void', gave the following error.
+    Object literal may only specify known properties, and 'expiresIn' does not exist in type 'SignCallback'.
+src/controllers/authController.ts(38,38): error TS2352: Conversion of type 'ObjectId' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/controllers/authController.ts(62,38): error TS2352: Conversion of type 'ObjectId' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/controllers/jobController.ts(83,13): error TS2412: Type 'string | string[] | undefined' is not assignable to type 'ObjectIdQueryTypeCasting | undefined' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+src/controllers/jobController.ts(114,48): error TS2769: No overload matches this call.
+  Overload 1 of 9, '(filter?: _QueryFilter<{ _id: ObjectId; $assertPopulated: <Paths = {}>(path: string | string[], values?: Partial<Paths> | undefined) => PopulateDocumentResult<IApplication, Paths, (Omit<...> & PopulatePathToRawDocType<...>)[] | ... 1 more ... | null, any>; ... 225 more ...; appliedAt: Date; }> | undefined, projection?: ProjectionType<...> | ... 1 more ... | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Argument of type '{ jobId: string | string[] | undefined; }' is not assignable to parameter of type '_QueryFilter<{ _id: ObjectId; $assertPopulated: <Paths = {}>(path: string | string[], values?: Partial<Paths> | undefined) => PopulateDocumentResult<IApplication, Paths, (Omit<...> & PopulatePathToRawDocType<...>)[] | ... 1 more ... | null, any>; ... 225 more ...; appliedAt: Date; }>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+      Type '{ jobId: string | string[] | undefined; }' is not assignable to type '{ _id?: StrictCondition<ApplyBasicQueryCasting<ObjectId>>; $assertPopulated?: StrictCondition<ApplyBasicQueryCasting<(<Paths = {}>(path: string | string[], values?: Partial<Paths> | undefined) => PopulateDocumentResult<...>)>>; ... 225 more ...; appliedAt?: StrictCondition<...>; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+        Types of property 'jobId' are incompatible.
+          Type 'string | string[] | undefined' is not assignable to type 'StrictCondition<ApplyBasicQueryCasting<ObjectId>>'.
+            Type 'undefined' is not assignable to type 'StrictCondition<ApplyBasicQueryCasting<ObjectId>>'.
+  Overload 2 of 9, '(filter?: Query<any, any, {}, unknown, "find", Record<string, never>> | undefined, projection?: ProjectionType<IApplication> | null | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Object literal may only specify known properties, and 'jobId' does not exist in type 'Query<any, any, {}, unknown, "find", Record<string, never>>'.
+src/controllers/notificationController.ts(27,61): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'string' is not assignable to type 'RegExp | "error" | "info" | "success" | "warning"'.
+src/controllers/reviewController.ts(66,38): error TS2769: No overload matches this call.
+  Overload 1 of 9, '(filter?: _QueryFilter<{ _id: ObjectId; $assertPopulated: <Paths = {}>(path: string | string[], values?: Partial<Paths> | undefined) => PopulateDocumentResult<IReview, Paths, (Omit<...> & PopulatePathToRawDocType<...>)[] | (keyof PopulatePathToRawDocType<...> extends never ? any : Omit<...> & PopulatePathToRawDocType<...>) | null, any>; ... 226 more ...; rating: number; }> | undefined, projection?: ProjectionType<...> | ... 1 more ... | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Argument of type '{ revieweeId: string | string[] | undefined; }' is not assignable to parameter of type '_QueryFilter<{ _id: ObjectId; $assertPopulated: <Paths = {}>(path: string | string[], values?: Partial<Paths> | undefined) => PopulateDocumentResult<IReview, Paths, (Omit<unknown, keyof PopulatePathToRawDocType<...>> & PopulatePathToRawDocType<...>)[] | (keyof PopulatePathToRawDocType<...> extends never ? any : Omit...' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+      Type '{ revieweeId: string | string[] | undefined; }' is not assignable to type '{ _id?: StrictCondition<ApplyBasicQueryCasting<ObjectId>>; $assertPopulated?: StrictCondition<ApplyBasicQueryCasting<(<Paths = {}>(path: string | string[], values?: Partial<Paths> | undefined) => PopulateDocumentResult<...>)>>; ... 226 more ...; rating?: StrictCondition<...>; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+        Types of property 'revieweeId' are incompatible.
+          Type 'string | string[] | undefined' is not assignable to type 'StrictCondition<ApplyBasicQueryCasting<ObjectId>>'.
+            Type 'undefined' is not assignable to type 'StrictCondition<ApplyBasicQueryCasting<ObjectId>>'.
+  Overload 2 of 9, '(filter?: Query<any, any, {}, unknown, "find", Record<string, never>> | undefined, projection?: ProjectionType<IReview> | null | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Object literal may only specify known properties, and 'revieweeId' does not exist in type 'Query<any, any, {}, unknown, "find", Record<string, never>>'.
+src/controllers/verificationController.ts(35,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'string' is not assignable to type 'RegExp | "rejected" | "pending" | "approved" | "flagged_by_ai"'.
+src/middleware/authMiddleware.ts(28,29): error TS2352: Conversion of type 'Jwt & JwtPayload & void' to type 'JwtPayload' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'id' is missing in type 'Jwt & JwtPayload & void' but required in type 'JwtPayload'.
+src/middleware/authMiddleware.ts(29,17): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/models/User.ts(56,9): error TS2349: This expression is not callable.
+  Type 'SaveOptions' has no call signatures.

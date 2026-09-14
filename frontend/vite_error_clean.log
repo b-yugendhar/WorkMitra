@@ -1,0 +1,39 @@
+EXIT CODE: 1
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vite.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+[36mvite v8.3.0 [32mbuilding client environment for production...[36m[39m
+transforming...
+(node:25484) Warning: Failed to load the ES module: e:\projects_placements\WorkMitra\frontend\postcss.config.js. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+âœ“ 2910 modules transformed.
+[31mâœ—[39m Build failed in 1.13s
+[31merror during build:
+[31mBuild failed with 1 error:
+
+[plugin vite:css] e:/projects_placements/WorkMitra/frontend/src/index.css
+Failed to load PostCSS config: Failed to load PostCSS config (searchPath: e:/projects_placements/WorkMitra/frontend): [SyntaxError] Unexpected token 'export'
+e:\projects_placements\WorkMitra\frontend\postcss.config.js:1
+export default {
+^^^^^^
+
+SyntaxError: Unexpected token 'export'
+    at wrapSafe (node:internal/modules/cjs/loader:1743:18)
+    at Module._compile (node:internal/modules/cjs/loader:1786:20)
+    at Object..js (node:internal/modules/cjs/loader:1943:10)
+    at Module.load (node:internal/modules/cjs/loader:1533:32)
+    at Module._load (node:internal/modules/cjs/loader:1335:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:328:3)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:233:7)
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)[31m
+    at aggregateBindingErrorsIntoJsError (file:///e:/projects_placements/WorkMitra/frontend/node_modules/rolldown/dist/shared/error-CRNyaqoL.mjs:48:18)
+    at unwrapBindingResult (file:///e:/projects_placements/WorkMitra/frontend/node_modules/rolldown/dist/shared/error-CRNyaqoL.mjs:18:128)
+    at #build (file:///e:/projects_placements/WorkMitra/frontend/node_modules/rolldown/dist/shared/rolldown-B-jRyK4b.mjs:133:34)
+    at async buildEnvironment (file:///e:/projects_placements/WorkMitra/frontend/node_modules/vite/dist/node/chunks/node.js:34082:66)
+    at async Object.build (file:///e:/projects_placements/WorkMitra/frontend/node_modules/vite/dist/node/chunks/node.js:34503:19)
+    at async Object.buildApp (file:///e:/projects_placements/WorkMitra/frontend/node_modules/vite/dist/node/chunks/node.js:34500:153)
+    at async CAC.<anonymous> (file:///e:/projects_placements/WorkMitra/frontend/node_modules/vite/dist/node/cli.js:780:3) {
+  errors: [Getter/Setter]
+}[39m

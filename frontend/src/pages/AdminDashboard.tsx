@@ -5,7 +5,12 @@ import { Users, Briefcase, IndianRupee } from 'lucide-react';
 import api from '../services/api';
 
 const AdminDashboard = () => {
-    const [stats, setStats] = useState({
+    const [stats, setStats] = useState<{
+        totalUsers: number;
+        activeAgreements: number;
+        totalEscrow: number;
+        revenueData: { month: string; revenue: number }[];
+    }>({
         totalUsers: 0,
         activeAgreements: 0,
         totalEscrow: 0,
@@ -86,7 +91,7 @@ const AdminDashboard = () => {
                     </select>
                 </div>
 
-                <ResponsiveContainer width="100%" height="85%">
+                <ResponsiveContainer width={undefined} height={undefined}>
                     <AreaChart data={stats.revenueData}>
                         <defs>
                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">

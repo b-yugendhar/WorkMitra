@@ -1,44 +1,101 @@
-import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
-import User from '../models/User';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import User from "../models/User";
 
-interface JwtPayload {
-    id: string;
-}
+export const protect = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const authHeader = req.headers.authorization;
 
-// Extend Request type to include user
-declare global {
-    namespace Express {
-        interface Request {
-            user?: any;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            res.status(401).json({
+                message: "Not authorized. Token missing",
+            });
+            return;
         }
-    }
-}
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
-    let token;
+        const token = authHeader.substring(7).trim();
 
-    if (
-        req.headers.authorization &&
-        req.headers.authorization.startsWith('Bearer')
-    ) {
-        try {
-            token = req.headers.authorization.split(' ')[1];
+        const secret = process.env.JWT_SECRET;
 
-            const decoded = jwt.verify(
-                token,
-                process.env.JWT_SECRET || 'secret'
-            ) as JwtPayload;
-
-            req.user = await User.findById(decoded.id).select('-passwordHash');
-
-            next();
-        } catch (error) {
-            res.status(401).json({ message: 'Not authorized, token failed' });
+        if (!secret) {
+            res.status(500).json({
+                message: "JWT_SECRET is missing in .env",
+            });
+            return;
         }
+
+        const verifiedToken = jwt.verify(token, secret);
+
+        if (typeof verifiedToken === "string") {
+            res.status(401).json({
+                message: "Invalid token payload",
+            });
+            return;
+        }
+
+        const decoded = verifiedToken as jwt.JwtPayload & {
+            id: string;
+        };
+
+        if (!decoded.id) {
+            res.status(401).json({
+                message: "User ID missing from token",
+            });
+            return;
+        }
+
+        const user = await User.findById(decoded.id).select(
+            "-passwordHash"
+        );
+
+        if (!user) {
+            res.status(401).json({
+                message: "User not found",
+            });
+            return;
+        }
+
+        if (user.status !== "active") {
+            res.status(403).json({
+                message: "Your account is not active",
+            });
+            return;
+        }
+
+        (req as any).user = user;
+
+        next();
+    } catch (error) {
+        res.status(401).json({
+            message: "Invalid or expired token",
+        });
+    }
+};
+
+export const admin = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): void => {
+    const user = (req as any).user;
+
+    if (!user) {
+        res.status(401).json({
+            message: "Not authenticated",
+        });
+        return;
     }
 
-    if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
+    if (user.role !== "admin") {
+        res.status(403).json({
+            message: "Admin access required",
+        });
+        return;
     }
+
+    next();
 };
