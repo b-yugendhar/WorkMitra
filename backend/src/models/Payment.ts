@@ -2,10 +2,13 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IPayment extends Document {
     agreementId: Types.ObjectId;
+    workerId: Types.ObjectId;
+    employerId: Types.ObjectId;
     amount: number;
     currency: string;
-    transactionId?: string; // e.g. stripe charge id
-    status: 'pending' | 'successful' | 'failed' | 'refunded';
+    status: 'pending' | 'paid' | 'failed' | 'refunded';
+    paymentReference: string;
+    paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -13,14 +16,17 @@ export interface IPayment extends Document {
 const paymentSchema: Schema = new Schema(
     {
         agreementId: { type: Schema.Types.ObjectId, ref: 'WorkAgreement', required: true },
+        workerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        employerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
         amount: { type: Number, required: true },
         currency: { type: String, default: 'INR' },
-        transactionId: { type: String },
         status: {
             type: String,
-            enum: ['pending', 'successful', 'failed', 'refunded'],
-            default: 'pending'
-        }
+            enum: ['pending', 'paid', 'failed', 'refunded'],
+            default: 'pending',
+        },
+        paymentReference: { type: String, required: true },
+        paidAt: { type: Date },
     },
     { timestamps: true }
 );

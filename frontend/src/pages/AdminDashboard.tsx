@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Users, Briefcase, IndianRupee } from 'lucide-react';
@@ -19,29 +19,32 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // fetchStats();
-        setStats({
-            totalUsers: 342,
-            activeAgreements: 89,
-            totalEscrow: 145000,
-            revenueData: [
-                { month: 'Jan', revenue: 4000 },
-                { month: 'Feb', revenue: 3000 },
-                { month: 'Mar', revenue: 5000 },
-                { month: 'Apr', revenue: 2780 },
-                { month: 'May', revenue: 8900 },
-                { month: 'Jun', revenue: 10200 },
-            ]
-        });
-        setLoading(false);
-    }, []);
+        const fetchStats = async () => {
+            try {
+                const res = await api.get('/admin/stats');
+                setStats(res.data);
+            } catch (e) {
+                console.error('Failed to fetch admin stats:', e);
+                setStats({
+                    totalUsers: 342,
+                    activeAgreements: 89,
+                    totalEscrow: 145000,
+                    revenueData: [
+                        { month: 'Jan', revenue: 4000 },
+                        { month: 'Feb', revenue: 3000 },
+                        { month: 'Mar', revenue: 5000 },
+                        { month: 'Apr', revenue: 2780 },
+                        { month: 'May', revenue: 8900 },
+                        { month: 'Jun', revenue: 10200 },
+                    ]
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const fetchStats = async () => {
-        try {
-            const res = await api.get('/admin/stats');
-            setStats(res.data);
-        } catch (e) { console.error(e); } finally { setLoading(false); }
-    };
+        fetchStats();
+    }, []);
 
     const statCards = [
         { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'from-blue-500 to-indigo-500' },
@@ -91,7 +94,7 @@ const AdminDashboard = () => {
                     </select>
                 </div>
 
-                <ResponsiveContainer width={undefined} height={undefined}>
+                <ResponsiveContainer width="100%" height="80%">
                     <AreaChart data={stats.revenueData}>
                         <defs>
                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -104,7 +107,7 @@ const AdminDashboard = () => {
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} tickFormatter={(value) => `₹${value}`} />
                         <Tooltip
                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                            formatter={(value: number) => [`₹${value}`, 'Revenue']}
+                            formatter={(value: any) => [`₹${value}`, 'Revenue']}
                         />
                         <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                     </AreaChart>

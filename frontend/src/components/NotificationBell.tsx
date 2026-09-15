@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell } from 'lucide-react';
-import api from '../services/api';
 
 const NotificationBell = () => {
     const [notifications, setNotifications] = useState<any[]>([]);

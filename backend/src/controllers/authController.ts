@@ -2,83 +2,200 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 
-// Generate JWT token
-const generateToken = (id: string) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: process.env.JWT_EXPIRE || '30d',
-    });
+const generateToken = (id: string): string => {
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+        throw new Error('JWT_SECRET is missing in .env');
+    }
+
+    return jwt.sign(
+        { id },
+        secret,
+        {
+            expiresIn: process.env.JWT_EXPIRE || '30d',
+        } as jwt.SignOptions
+    );
 };
 
-// @desc    Register a new user
-// @route   POST /api/auth/register
-// @access  Public
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
-        const { phone, password, role, email, preferredLanguage } = req.body;
-
-        const userExists = await User.findOne({ phone });
-
-        if (userExists) {
-            return res.status(400).json({ message: 'User with this phone number already exists' });
-        }
-
-        const user = await User.create({
+        const {
+            fullName,
             phone,
-            passwordHash: password, // Will be hashed by pre-save hook
+            password,
             role,
             email,
             preferredLanguage,
+        } = req.body;
+
+        if (!phone || !password) {
+            res.status(400).json({
+                message: 'Phone number and password are required',
+            });
+            return;
+        }
+
+        if (password.length < 6) {
+            res.status(400).json({
+                message: 'Password must contain at least 6 characters',
+            });
+            return;
+        }
+
+        if (role === 'admin') {
+            res.status(400).json({
+                message: 'Public registration for Admin role is strictly forbidden',
+            });
+            return;
+        }
+
+        const validRole = role === 'employer' ? 'employer' : 'worker';
+
+        const existingUserPhone = await User.findOne({ phone });
+        if (existingUserPhone) {
+            res.status(409).json({
+                message: 'User with this phone number already exists',
+            });
+            return;
+        }
+
+        if (email && email.trim() !== '') {
+            const existingUserEmail = await User.findOne({ email: email.toLowerCase() });
+            if (existingUserEmail) {
+                res.status(409).json({
+                    message: 'User with this email address already exists',
+                });
+                return;
+            }
+        }
+
+        const user = await User.create({
+            fullName: fullName || undefined,
+            phone,
+            passwordHash: password,
+            role: validRole,
+            email: email ? email.toLowerCase() : undefined,
+            preferredLanguage: preferredLanguage || 'en',
         });
 
-        if (user) {
-            res.status(201).json({
-                _id: user._id,
+        const token = generateToken(String(user._id));
+
+        res.status(201).json({
+            message: 'Registration successful',
+            token,
+            user: {
+                id: String(user._id),
+                fullName: user.fullName,
                 phone: user.phone,
+                email: user.email,
                 role: user.role,
-                token: generateToken(user._id as string),
-            });
-        } else {
-            res.status(400).json({ message: 'Invalid user data' });
-        }
+                status: user.status,
+                preferredLanguage: user.preferredLanguage,
+            },
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: (error as Error).message });
+        res.status(500).json({
+            message: 'Registration failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
     }
 };
 
-// @desc    Auth user & get token
-// @route   POST /api/auth/login
-// @access  Public
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
         const { phone, password } = req.body;
 
+        if (!phone || !password) {
+            res.status(400).json({
+                message: 'Phone number and password are required',
+            });
+            return;
+        }
+
         const user = await User.findOne({ phone });
 
-        if (user && (await user.matchPassword(password))) {
-            res.json({
-                _id: user._id,
-                phone: user.phone,
-                role: user.role,
-                token: generateToken(user._id as string),
+        if (!user) {
+            res.status(401).json({
+                message: 'Invalid phone number or password',
             });
-        } else {
-            res.status(401).json({ message: 'Invalid phone number or password' });
+            return;
         }
+
+        const passwordMatches = await user.matchPassword(password);
+
+        if (!passwordMatches) {
+            res.status(401).json({
+                message: 'Invalid phone number or password',
+            });
+            return;
+        }
+
+        if (user.status !== 'active') {
+            res.status(403).json({
+                message: 'Your account is suspended or inactive. Please contact support.',
+            });
+            return;
+        }
+
+        const token = generateToken(String(user._id));
+
+        res.status(200).json({
+            message: 'Login successful',
+            token,
+            user: {
+                id: String(user._id),
+                fullName: user.fullName,
+                phone: user.phone,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                preferredLanguage: user.preferredLanguage,
+            },
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: (error as Error).message });
+        res.status(500).json({
+            message: 'Login failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
     }
 };
 
-// @desc    Get user profile
-// @route   GET /api/auth/profile
-// @access  Private
-export const getUserProfile = async (req: Request, res: Response) => {
-    // @ts-ignore - Ignore temporarily until middleware types are defined
-    const user = await User.findById(req.user._id).select('-passwordHash');
+export const getUserProfile = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const authenticatedUser = (req as any).user;
 
-    if (user) {
-        res.json(user);
-    } else {
-        res.status(444).json({ message: 'User not found' });
+        if (!authenticatedUser) {
+            res.status(401).json({
+                message: 'User not authenticated',
+            });
+            return;
+        }
+
+        const user = await User.findById(authenticatedUser._id).select(
+            '-passwordHash'
+        );
+
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+            });
+            return;
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({
+            message: 'Unable to load profile',
+        });
     }
 };

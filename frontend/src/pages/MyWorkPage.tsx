@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, CheckCircle, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
@@ -67,7 +67,7 @@ const MyWorkPage = () => {
                                         <Briefcase className="w-6 h-6" />
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${task.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                                            task.status === 'disputed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                        task.status === 'disputed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                                         }`}>
                                         {task.status}
                                     </span>

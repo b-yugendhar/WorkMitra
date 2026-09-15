@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IApplication extends Document {
     jobId: mongoose.Types.ObjectId;
     workerId: mongoose.Types.ObjectId;
-    status: 'applied' | 'reviewed' | 'shortlisted' | 'hired' | 'rejected';
+    status: 'applied' | 'pending' | 'reviewed' | 'shortlisted' | 'accepted' | 'hired' | 'rejected';
     matchScore: number;
     coverNote?: string;
     appliedAt: Date;
@@ -23,7 +23,7 @@ const applicationSchema: Schema = new Schema(
         },
         status: {
             type: String,
-            enum: ['applied', 'reviewed', 'shortlisted', 'hired', 'rejected'],
+            enum: ['applied', 'pending', 'reviewed', 'shortlisted', 'accepted', 'hired', 'rejected'],
             default: 'applied',
         },
         matchScore: {

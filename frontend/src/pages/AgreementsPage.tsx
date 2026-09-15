@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronDown, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import ReviewModal from '../components/ReviewModal';
 

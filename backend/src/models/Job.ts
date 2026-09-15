@@ -5,71 +5,78 @@ export interface IJob extends Document {
     title: string;
     description: string;
     requiredSkills: string[];
-    location: {
-        type: string;
-        coordinates: number[];
+    location: string;
+    coordinates?: {
+        type: 'Point';
+        coordinates: [number, number]; // [longitude, latitude]
     };
-    jobType: 'full-time' | 'part-time' | 'contract' | 'one-off';
-    budget: {
-        min: number;
-        max: number;
-        currency: string;
-    };
-    status: 'open' | 'filled' | 'closed' | 'draft';
+    wage: number;
+    duration: string;
+    status: 'open' | 'closed' | 'in_progress';
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const jobSchema: Schema = new Schema(
     {
         employerId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: true,
+            required: [true, 'Employer ID is required'],
             ref: 'User',
         },
         title: {
             type: String,
-            required: true,
+            required: [true, 'Job title is required'],
+            trim: true,
         },
         description: {
             type: String,
-            required: true,
+            required: [true, 'Job description is required'],
+            trim: true,
         },
         requiredSkills: {
             type: [String],
+            required: [true, 'At least one required skill must be specified'],
             default: [],
         },
         location: {
+            type: String,
+            required: [true, 'Job location is required'],
+            trim: true,
+        },
+        coordinates: {
             type: {
                 type: String,
                 enum: ['Point'],
-                required: true,
+                default: 'Point',
             },
             coordinates: {
                 type: [Number],
-                required: true,
+                default: undefined,
             },
         },
-        jobType: {
-            type: String,
-            enum: ['full-time', 'part-time', 'contract', 'one-off'],
-            required: true,
+        wage: {
+            type: Number,
+            required: [true, 'Wage is required'],
+            min: [0, 'Wage must be a positive number'],
         },
-        budget: {
-            min: { type: Number },
-            max: { type: Number },
-            currency: { type: String, default: 'INR' },
+        duration: {
+            type: String,
+            required: [true, 'Job duration is required'],
+            trim: true,
         },
         status: {
             type: String,
-            enum: ['open', 'filled', 'closed', 'draft'],
-            default: 'draft',
+            enum: ['open', 'closed', 'in_progress'],
+            default: 'open',
         },
     },
     { timestamps: true }
 );
 
-jobSchema.index({ location: '2dsphere' });
 jobSchema.index({ employerId: 1 });
 jobSchema.index({ status: 1 });
+jobSchema.index({ title: 'text', description: 'text', location: 'text', requiredSkills: 'text' });
 
 const Job = mongoose.model<IJob>('Job', jobSchema);
 export default Job;

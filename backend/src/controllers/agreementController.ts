@@ -1,36 +1,96 @@
 import { Request, Response } from 'express';
 import WorkAgreement from '../models/WorkAgreement';
-import Payment from '../models/Payment';
+import Application from '../models/Application';
 import Job from '../models/Job';
+import { createNotification } from './notificationController';
 
-// @desc    Create a new work agreement
+// @desc    Create a new work agreement for an accepted application
 // @route   POST /api/agreements
 // @access  Private (Employer)
 export const createAgreement = async (req: Request, res: Response) => {
     try {
-        const { jobId, workerId, terms, agreedAmount } = req.body;
-        // @ts-ignore
-        const employerId = req.user._id;
+        const { jobId, applicationId, workerId, agreedWage, duration, startDate, endDate, terms } = req.body;
+        const user = (req as any).user;
+        const employerId = user._id;
+
+        if (!jobId || !workerId || agreedWage === undefined || !terms) {
+            return res.status(400).json({ message: 'Please provide all required agreement fields (jobId, workerId, agreedWage, terms)' });
+        }
 
         const job = await Job.findById(jobId);
         if (!job) return res.status(404).json({ message: 'Job not found' });
 
-        // Ensure the person creating agreement is the employer of the job
-        if (job.employerId.toString() !== employerId.toString()) {
+        if (job.employerId.toString() !== employerId.toString() && user.role !== 'admin') {
             return res.status(403).json({ message: 'Not authorized to create agreement for this job' });
+        }
+
+        // Check if application exists and is accepted/applied
+        if (applicationId) {
+            const application = await Application.findById(applicationId);
+            if (application) {
+                // Check duplicate agreement for same application
+                const existingAgreement = await WorkAgreement.findOne({ applicationId });
+                if (existingAgreement) {
+                    return res.status(400).json({ message: 'An agreement already exists for this application' });
+                }
+                // Auto-mark application as accepted/hired if pending
+                if (application.status !== 'accepted' && application.status !== 'hired') {
+                    application.status = 'hired';
+                    await application.save();
+                }
+            }
         }
 
         const agreement = await WorkAgreement.create({
             jobId,
+            applicationId,
             workerId,
             employerId,
-            terms,
-            agreedAmount
+            agreedWage: Number(agreedWage),
+            duration: duration || job.duration || '1 Day',
+            startDate: startDate ? new Date(startDate) : new Date(),
+            endDate: endDate ? new Date(endDate) : undefined,
+            terms: terms.trim(),
+            status: 'active',
+            paymentStatus: 'pending',
         });
 
-        res.status(201).json(agreement);
+        // Create notification for worker
+        await createNotification(
+            workerId.toString(),
+            'Work Agreement Created! 📜',
+            `A formal work agreement has been issued for "${job.title}". Agreed Wage: ₹${agreedWage}`,
+            'success'
+        );
+
+        const populated = await agreement.populate([
+            { path: 'workerId', select: 'fullName phone email' },
+            { path: 'employerId', select: 'fullName phone email' },
+            { path: 'jobId', select: 'title location wage' },
+        ]);
+
+        return res.status(201).json(populated);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating agreement', error: (error as Error).message });
+        return res.status(500).json({ message: 'Error creating agreement', error: (error as Error).message });
+    }
+};
+
+// @desc    Get employer agreements
+// @route   GET /api/agreements/employer
+// @access  Private (Employer)
+export const getEmployerAgreements = async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const employerId = user._id;
+
+        const agreements = await WorkAgreement.find({ employerId })
+            .populate('workerId', 'fullName phone email profileImage')
+            .populate('jobId', 'title location wage')
+            .sort({ createdAt: -1 });
+
+        return res.json(agreements);
+    } catch (error) {
+        return res.status(500).json({ message: 'Error fetching employer agreements', error: (error as Error).message });
     }
 };
 
@@ -39,23 +99,66 @@ export const createAgreement = async (req: Request, res: Response) => {
 // @access  Private
 export const getMyAgreements = async (req: Request, res: Response) => {
     try {
-        // @ts-ignore
-        const userId = req.user._id;
-        // @ts-ignore
-        const userRole = req.user.role;
+        const user = (req as any).user;
+        const userId = user._id;
+        const userRole = user.role;
 
         let agreements;
         if (userRole === 'employer') {
-            agreements = await WorkAgreement.find({ employerId: userId }).populate('workerId', 'phone name').populate('jobId', 'title');
+            agreements = await WorkAgreement.find({ employerId: userId })
+                .populate('workerId', 'fullName phone email')
+                .populate('jobId', 'title location wage')
+                .sort({ createdAt: -1 });
         } else if (userRole === 'worker') {
-            agreements = await WorkAgreement.find({ workerId: userId }).populate('employerId', 'phone name').populate('jobId', 'title');
+            agreements = await WorkAgreement.find({ workerId: userId })
+                .populate('employerId', 'fullName phone email')
+                .populate('jobId', 'title location wage')
+                .sort({ createdAt: -1 });
         } else {
-            return res.status(403).json({ message: 'Not authorized' });
+            agreements = await WorkAgreement.find()
+                .populate('workerId', 'fullName phone')
+                .populate('employerId', 'fullName phone')
+                .populate('jobId', 'title')
+                .sort({ createdAt: -1 });
         }
 
-        res.json(agreements);
+        return res.json(agreements);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching agreements', error: (error as Error).message });
+        return res.status(500).json({ message: 'Error fetching agreements', error: (error as Error).message });
+    }
+};
+
+// @desc    Get single agreement by ID
+// @route   GET /api/agreements/:id
+// @access  Private
+export const getAgreementById = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const user = (req as any).user;
+        const userId = user._id.toString();
+        const userRole = user.role;
+
+        const agreement = await WorkAgreement.findById(id)
+            .populate('workerId', 'fullName phone email profileImage')
+            .populate('employerId', 'fullName phone email profileImage')
+            .populate('jobId', 'title description location wage duration requiredSkills');
+
+        if (!agreement) {
+            return res.status(404).json({ message: 'Agreement not found' });
+        }
+
+        const isParticipant =
+            agreement.workerId._id.toString() === userId ||
+            agreement.employerId._id.toString() === userId ||
+            userRole === 'admin';
+
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Not authorized to view this agreement' });
+        }
+
+        return res.json(agreement);
+    } catch (error) {
+        return res.status(500).json({ message: 'Error fetching agreement details', error: (error as Error).message });
     }
 };
 
@@ -65,62 +168,35 @@ export const getMyAgreements = async (req: Request, res: Response) => {
 export const updateAgreementStatus = async (req: Request, res: Response) => {
     try {
         const { status } = req.body;
-        const agreement = await WorkAgreement.findById(req.params.id);
+        const user = (req as any).user;
+        const agreement = await WorkAgreement.findById(req.params.id).populate('jobId');
 
         if (!agreement) return res.status(404).json({ message: 'Agreement not found' });
 
-        // @ts-ignore
-        const userId = req.user._id.toString();
+        const userId = user._id.toString();
         const isWorker = agreement.workerId.toString() === userId;
         const isEmployer = agreement.employerId.toString() === userId;
+        const isAdmin = user.role === 'admin';
 
-        if (!isWorker && !isEmployer) {
-            return res.status(403).json({ message: 'Not authorized' });
+        if (!isWorker && !isEmployer && !isAdmin) {
+            return res.status(403).json({ message: 'Not authorized to modify this agreement' });
         }
 
-        // Add rules: e.g., only employer can mark 'completed' with payment, or worker marks 'completed' as request.
-        // For simplicity, we just allow the status to change
         agreement.status = status;
         await agreement.save();
 
-        res.json(agreement);
+        const notifyTarget = isEmployer ? agreement.workerId.toString() : agreement.employerId.toString();
+        const jobTitle = (agreement.jobId as any)?.title || 'Work Contract';
+
+        await createNotification(
+            notifyTarget,
+            'Agreement Status Updated',
+            `The status of contract for "${jobTitle}" has been set to ${status.toUpperCase()}.`,
+            'info'
+        );
+
+        return res.json(agreement);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating status', error: (error as Error).message });
-    }
-};
-
-// @desc    Process mockup payment (Escrow or Released)
-// @route   POST /api/agreements/:id/pay
-// @access  Private (Employer)
-export const processPayment = async (req: Request, res: Response) => {
-    try {
-        const agreementId = req.params.id;
-        // @ts-ignore
-        const userId = req.user._id.toString();
-
-        const agreement = await WorkAgreement.findById(agreementId);
-        if (!agreement) return res.status(404).json({ message: 'Agreement not found' });
-
-        if (agreement.employerId.toString() !== userId) {
-            return res.status(403).json({ message: 'Only the employer can make payment' });
-        }
-
-        const { paymentAction } = req.body; // 'escrow' or 'released'
-
-        const payment = await Payment.create({
-            agreementId: agreement._id,
-            amount: agreement.agreedAmount,
-            status: 'successful'
-        });
-
-        agreement.paymentStatus = paymentAction;
-        if (paymentAction === 'released') {
-            agreement.status = 'completed';
-        }
-        await agreement.save();
-
-        res.json({ agreement, payment });
-    } catch (error) {
-        res.status(500).json({ message: 'Error processing payment', error: (error as Error).message });
+        return res.status(500).json({ message: 'Error updating status', error: (error as Error).message });
     }
 };

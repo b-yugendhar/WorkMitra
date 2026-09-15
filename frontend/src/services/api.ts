@@ -1,18 +1,35 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Depending on backend host
+    baseURL: 'http://localhost:5000/api',
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
-// Since authentication wasn't fully mocked on the client yet, 
-// we intercept and add a dummy auth token or handle dynamically.
-api.interceptors.request.use((config) => {
-    // Attempt to get token from storage
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
+
+        return Promise.reject(error);
     }
-    return config;
-});
+);
 
 export default api;

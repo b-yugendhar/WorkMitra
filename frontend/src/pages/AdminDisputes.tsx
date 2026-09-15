@@ -1,32 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ShieldCheck, ShieldAlert, CheckCircle, RefreshCcw } from 'lucide-react';
+import { ShieldAlert, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 
 const AdminDisputes = () => {
     const [disputes, setDisputes] = useState<any[]>([]);
 
     useEffect(() => {
-        // fetchDisputes();
-        setDisputes([
-            { _id: 'd1', jobId: { title: 'Warehouse Wiring' }, workerId: { name: 'Ali Khan', phone: '9898989898' }, employerId: { name: 'Smart Build', phone: '9000000001' }, agreedAmount: '₹2,500', status: 'disputed' }
-        ]);
+        const fetchDisputes = async () => {
+            try {
+                const res = await api.get('/admin/disputes');
+                setDisputes(res.data.disputes || []);
+            } catch (e) {
+                console.error('Failed to fetch disputes:', e);
+            }
+        };
+
+        fetchDisputes();
     }, []);
 
-    const fetchDisputes = async () => {
+    const handleResolve = async (id: string, resolutionType: string) => {
         try {
-            const res = await api.get('/admin/disputes');
-            setDisputes(res.data);
-        } catch (e) { console.error(e); }
-    };
+            const resolutionDetails =
+                resolutionType === 'pay_worker'
+                    ? 'Adjudicated in favor of Worker. Funds released from Escrow.'
+                    : 'Adjudicated in favor of Employer. Funds refunded.';
 
-    const handleResolve = async (id: string, resolution: string) => {
-        try {
-            // await api.post(`/admin/disputes/${id}/resolve`, { resolution, details: 'Admin manual intervention' });
-            setDisputes(disputes.filter(d => d._id !== id));
-        } catch (e) {
-            console.error(e);
+            await api.post(`/admin/disputes/${id}/resolve`, {
+                status: 'resolved',
+                resolutionDetails,
+            });
+
+            setDisputes((prev) => prev.filter((d) => d._id !== id));
+            alert('Dispute successfully resolved on MongoDB!');
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to resolve dispute');
         }
     };
 
